@@ -37,6 +37,10 @@ create table if not exists bookings (
   notes text default '',
   hr_id uuid references hrs(id) on delete set null,
   status text not null default 'Pending' check (status in ('Pending', 'Contacted', 'Scheduled', 'Completed', 'Cancelled')),
+  -- Payment fields
+  payment_status text not null default 'Unpaid' check (payment_status in ('Unpaid', 'Pending Verification', 'Verified', 'Rejected')),
+  payment_txn_id text default '',
+  payment_screenshot_url text default '',
   created_at timestamptz default now()
 );
 
@@ -132,3 +136,9 @@ insert into hrs (name, photo, company, position, experience, skills, bio, educat
   array['Marketing', 'Supply Chain', 'Sales', 'General Management'],
   'Mon–Wed, 6pm–9pm PKT'
 );
+
+-- ─── MIGRATION: Add payment columns to existing bookings table ────────────────
+-- Run this if your bookings table already exists:
+-- alter table bookings add column if not exists payment_status text not null default 'Unpaid' check (payment_status in ('Unpaid', 'Pending Verification', 'Verified', 'Rejected'));
+-- alter table bookings add column if not exists payment_txn_id text default '';
+-- alter table bookings add column if not exists payment_screenshot_url text default '';
