@@ -93,11 +93,17 @@ export async function getVisitorCount(): Promise<number> {
 // ─── BOOKING FUNCTIONS ───────────────────────────────────────────────────────
 
 export async function createBooking(
-  booking: Omit<Booking, 'id' | 'status' | 'created_at'>
+  booking: Omit<Booking, 'id' | 'status' | 'created_at' | 'payment_status' | 'payment_txn_id' | 'payment_screenshot_url'>
 ): Promise<Booking> {
   const { data, error } = await supabase
     .from('bookings')
-    .insert({ ...booking, status: 'Pending' })
+    .insert({
+      ...booking,
+      status: 'Pending',
+      payment_status: 'Unpaid',
+      payment_txn_id: '',
+      payment_screenshot_url: '',
+    })
     .select()
     .single();
   if (error) throw new Error(error.message);
