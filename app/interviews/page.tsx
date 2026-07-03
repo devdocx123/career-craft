@@ -73,7 +73,7 @@ export default function InterviewsPage() {
             Meet Your HR Mentors
           </h1>
           <p className="text-slate-400 max-w-xl mx-auto text-lg">
-            Choose from verified HR professionals. Book a one-on-one mock interview session — completely free.
+            Choose from verified HR professionals. Book a one-on-one mock interview session for PKR 1,000 via EasyPaisa.
           </p>
         </div>
 

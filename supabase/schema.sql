@@ -142,3 +142,33 @@ insert into hrs (name, photo, company, position, experience, skills, bio, educat
 -- alter table bookings add column if not exists payment_status text not null default 'Unpaid' check (payment_status in ('Unpaid', 'Pending Verification', 'Verified', 'Rejected'));
 -- alter table bookings add column if not exists payment_txn_id text default '';
 -- alter table bookings add column if not exists payment_screenshot_url text default '';
+
+-- ─── SITE STATS TABLE ─────────────────────────────────────────────────────────
+create table if not exists site_stats (
+  id text primary key default 'main',
+  visitor_count bigint not null default 0
+);
+
+-- Insert the initial row
+insert into site_stats (id, visitor_count) values ('main', 0) on conflict (id) do nothing;
+
+-- RLS
+alter table site_stats enable row level security;
+create policy "Allow public read site_stats" on site_stats for select using (true);
+create policy "Allow public update site_stats" on site_stats for update using (true);
+
+-- ─── ATOMIC INCREMENT FUNCTION ────────────────────────────────────────────────
+create or replace function increment_visitors()
+returns bigint
+language plpgsql
+as $$
+declare
+  new_count bigint;
+begin
+  update site_stats
+  set visitor_count = visitor_count + 1
+  where id = 'main'
+  returning visitor_count into new_count;
+  return new_count;
+end;
+$$;

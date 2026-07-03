@@ -124,13 +124,15 @@ export default function DashboardPage() {
         {/* Quick Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-12">
           {[
-            { label: 'Active Features', value: '1', color: 'text-emerald-400' },
-            { label: 'Coming Soon', value: '10', color: 'text-violet-400' },
-            { label: 'HR Mentors', value: '6+', color: 'text-amber-400' },
-            { label: 'Free Sessions', value: '∞', color: 'text-sky-400' },
+            { label: 'Active Features', value: '1', color: 'text-emerald-400', small: false },
+            { label: 'Coming Soon', value: '10', color: 'text-violet-400', small: false },
+            { label: 'HR Mentors', value: '6+', color: 'text-amber-400', small: false },
+            { label: 'Mock Interview Fee', value: 'PKR 1,000', color: 'text-sky-400', small: true },
           ].map((stat) => (
             <div key={stat.label} className="bg-white/5 border border-white/10 rounded-2xl p-5">
-              <div className={`text-3xl font-black mb-1 ${stat.color}`}>{stat.value}</div>
+              <div className={`font-black mb-1 ${stat.color} ${stat.small ? 'text-xl' : 'text-3xl'}`}>
+                {stat.value}
+              </div>
               <div className="text-slate-400 text-xs">{stat.label}</div>
             </div>
           ))}

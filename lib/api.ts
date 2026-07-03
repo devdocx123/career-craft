@@ -60,6 +60,36 @@ export async function deleteHR(id: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
+// ─── VISITOR COUNT ────────────────────────────────────────────────────────────
+
+export async function incrementVisitor(): Promise<number> {
+  try {
+    // Use rpc to atomically increment
+    const { data, error } = await supabase.rpc('increment_visitors');
+    if (error || data === null) {
+      // Fallback: manual read-then-update
+      const { data: row } = await supabase
+        .from('site_stats').select('visitor_count').eq('id', 'main').single();
+      const current = (row?.visitor_count ?? 0) + 1;
+      await supabase.from('site_stats').update({ visitor_count: current }).eq('id', 'main');
+      return current;
+    }
+    return data as number;
+  } catch {
+    return 0;
+  }
+}
+
+export async function getVisitorCount(): Promise<number> {
+  try {
+    const { data } = await supabase
+      .from('site_stats').select('visitor_count').eq('id', 'main').single();
+    return data?.visitor_count ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
 // ─── BOOKING FUNCTIONS ───────────────────────────────────────────────────────
 
 export async function createBooking(
@@ -85,6 +115,11 @@ export async function getBookings(): Promise<Booking[]> {
 
 export async function updateBookingStatus(id: string, status: BookingStatus): Promise<void> {
   const { error } = await supabase.from('bookings').update({ status }).eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+export async function updatePaymentStatus(id: string, payment_status: string): Promise<void> {
+  const { error } = await supabase.from('bookings').update({ payment_status }).eq('id', id);
   if (error) throw new Error(error.message);
 }
 

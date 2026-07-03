@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { getBookings, updateBookingStatus, deleteBooking, getHRs, createHR, updateHR, deleteHR } from '@/lib/api';
+import { getBookings, updateBookingStatus, deleteBooking, getHRs, createHR, updateHR, deleteHR, updatePaymentStatus } from '@/lib/api';
 import { Booking, BookingStatus, HR } from '@/types';
 
 const STATUSES: BookingStatus[] = ['Pending', 'Contacted', 'Scheduled', 'Completed', 'Cancelled'];
@@ -12,6 +12,14 @@ const statusColors: Record<BookingStatus, string> = {
   Scheduled: 'bg-violet-500/15 text-violet-400 border-violet-500/30',
   Completed: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
   Cancelled: 'bg-red-500/15 text-red-400 border-red-500/30',
+};
+
+const PAYMENT_STATUSES = ['Unpaid', 'Pending Verification', 'Verified', 'Rejected'] as const;
+const paymentColors: Record<string, string> = {
+  'Unpaid': 'bg-slate-700/50 text-slate-400 border-slate-600',
+  'Pending Verification': 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+  'Verified': 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+  'Rejected': 'bg-red-500/15 text-red-400 border-red-500/30',
 };
 
 type Tab = 'bookings' | 'hr';
@@ -244,7 +252,9 @@ function BookingsTab() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [updatingPayId, setUpdatingPayId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [screenshotModal, setScreenshotModal] = useState<{ url: string; txnId: string } | null>(null);
 
   const load = () => {
     setLoading(true);
@@ -265,6 +275,12 @@ function BookingsTab() {
     catch { alert('Update failed.'); } finally { setUpdatingId(null); }
   };
 
+  const handlePaymentStatus = async (id: string, payment_status: string) => {
+    setUpdatingPayId(id);
+    try { await updatePaymentStatus(id, payment_status); setBookings(p => p.map(b => b.id === id ? { ...b, payment_status: payment_status as Booking['payment_status'] } : b)); }
+    catch { alert('Payment status update failed.'); } finally { setUpdatingPayId(null); }
+  };
+
   const handleDelete = async (id: string, name: string) => {
     if (!confirm(`Delete booking for "${name}"?`)) return;
     setDeletingId(id);
@@ -272,23 +288,64 @@ function BookingsTab() {
     catch { alert('Delete failed.'); } finally { setDeletingId(null); }
   };
 
-  const stats = { total: bookings.length, pending: bookings.filter(b => b.status === 'Pending').length, contacted: bookings.filter(b => b.status === 'Contacted').length, completed: bookings.filter(b => b.status === 'Completed').length };
+  const stats = {
+    total: bookings.length,
+    pending: bookings.filter(b => b.status === 'Pending').length,
+    contacted: bookings.filter(b => b.status === 'Contacted').length,
+    completed: bookings.filter(b => b.status === 'Completed').length,
+    pendingPay: bookings.filter(b => b.payment_status === 'Pending Verification').length,
+  };
 
   return (
     <div>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-        {[{ label: 'Total', value: stats.total, color: 'text-white', bg: 'bg-gradient-to-br from-violet-600/20 to-indigo-600/10 border-violet-500/30' },
+      {/* Screenshot Modal */}
+      {screenshotModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setScreenshotModal(null)}>
+          <div className="bg-slate-900 border border-white/10 rounded-2xl p-5 max-w-lg w-full" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-white font-bold">Payment Screenshot</h3>
+                <p className="text-slate-400 text-xs mt-0.5">TXN ID: <span className="text-white font-mono font-semibold">{screenshotModal.txnId || '—'}</span></p>
+              </div>
+              <button onClick={() => setScreenshotModal(null)} className="text-slate-400 hover:text-white text-xl transition-colors">✕</button>
+            </div>
+            {screenshotModal.url && screenshotModal.url !== '' && !screenshotModal.url.startsWith('submitted_') ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={screenshotModal.url} alt="Payment proof" className="w-full rounded-xl max-h-96 object-contain bg-slate-800" />
+            ) : (
+              <div className="w-full h-40 rounded-xl bg-slate-800 flex flex-col items-center justify-center gap-2">
+                <span className="text-3xl">📎</span>
+                <p className="text-slate-400 text-sm">Screenshot submitted but not stored as URL.</p>
+                <p className="text-slate-500 text-xs">Please verify via EasyPaisa TXN ID above.</p>
+              </div>
+            )}
+            {screenshotModal.url && !screenshotModal.url.startsWith('submitted_') && !screenshotModal.url.startsWith('data:') && screenshotModal.url !== '' && (
+              <a href={screenshotModal.url} target="_blank" rel="noopener noreferrer"
+                className="mt-3 block text-center py-2 bg-violet-600/20 hover:bg-violet-600/30 text-violet-300 text-xs font-semibold rounded-xl border border-violet-500/30 transition-colors">
+                Open Full Image ↗
+              </a>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-8">
+        {[
+          { label: 'Total', value: stats.total, color: 'text-white', bg: 'bg-gradient-to-br from-violet-600/20 to-indigo-600/10 border-violet-500/30' },
           { label: 'Pending', value: stats.pending, color: 'text-amber-400', bg: 'bg-amber-500/5 border-amber-500/20' },
           { label: 'Contacted', value: stats.contacted, color: 'text-blue-400', bg: 'bg-blue-500/5 border-blue-500/20' },
           { label: 'Completed', value: stats.completed, color: 'text-emerald-400', bg: 'bg-emerald-500/5 border-emerald-500/20' },
+          { label: 'Pay Pending', value: stats.pendingPay, color: 'text-orange-400', bg: 'bg-orange-500/5 border-orange-500/20' },
         ].map(s => (
-          <div key={s.label} className={`rounded-2xl p-5 border ${s.bg}`}>
-            <div className={`text-3xl font-black mb-1 ${s.color}`}>{s.value}</div>
-            <div className="text-slate-400 text-xs">{s.label} Bookings</div>
+          <div key={s.label} className={`rounded-2xl p-4 border ${s.bg}`}>
+            <div className={`text-2xl font-black mb-1 ${s.color}`}>{s.value}</div>
+            <div className="text-slate-400 text-xs">{s.label}</div>
           </div>
         ))}
       </div>
 
+      {/* Search + Filter */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative flex-1">
           <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
@@ -301,6 +358,7 @@ function BookingsTab() {
         <button onClick={load} className="px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/15 text-white rounded-xl text-sm font-medium transition-colors">↻ Refresh</button>
       </div>
 
+      {/* Table */}
       {loading ? (
         <div className="flex justify-center py-20"><div className="w-10 h-10 border-4 border-violet-500/30 border-t-violet-500 rounded-full animate-spin" /></div>
       ) : filtered.length === 0 ? (
@@ -308,29 +366,85 @@ function BookingsTab() {
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-white/10">
           <table className="w-full text-sm">
-            <thead><tr className="border-b border-white/10 bg-white/5">
-              {['Student', 'Contact', 'Academic', 'HR / Domain', 'Schedule', 'Status', 'Date', 'Actions'].map(h => (
-                <th key={h} className="px-4 py-3 text-left text-slate-400 font-semibold text-xs uppercase tracking-wider whitespace-nowrap">{h}</th>
-              ))}
-            </tr></thead>
+            <thead>
+              <tr className="border-b border-white/10 bg-white/5">
+                {['Student', 'Contact', 'HR / Domain', 'Schedule', 'Booking Status', 'Payment Status', 'TXN ID', 'Proof', 'Date', 'Del'].map(h => (
+                  <th key={h} className="px-3 py-3 text-left text-slate-400 font-semibold text-xs uppercase tracking-wider whitespace-nowrap">{h}</th>
+                ))}
+              </tr>
+            </thead>
             <tbody className="divide-y divide-white/5">
               {filtered.map(b => (
                 <tr key={b.id} className="hover:bg-white/3 transition-colors">
-                  <td className="px-4 py-4 whitespace-nowrap"><div className="text-white font-semibold text-xs">{b.student_name}</div><div className="text-slate-500 text-xs">{b.college}</div></td>
-                  <td className="px-4 py-4"><div className="text-slate-300 text-xs">{b.email}</div><div className="text-slate-500 text-xs">{b.phone}</div></td>
-                  <td className="px-4 py-4 whitespace-nowrap"><div className="text-slate-300 text-xs">{b.branch}</div><div className="text-slate-500 text-xs">{b.year}</div></td>
-                  <td className="px-4 py-4 whitespace-nowrap"><div className="text-slate-300 text-xs">{b.hr?.name || '—'}</div><div className="text-slate-500 text-xs">{b.preferred_domain}</div></td>
-                  <td className="px-4 py-4 whitespace-nowrap"><div className="text-slate-300 text-xs">{b.preferred_date}</div><div className="text-slate-500 text-xs">{b.preferred_time}</div></td>
-                  <td className="px-4 py-4 whitespace-nowrap">
+                  {/* Student */}
+                  <td className="px-3 py-3 whitespace-nowrap">
+                    <div className="text-white font-semibold text-xs">{b.student_name}</div>
+                    <div className="text-slate-500 text-xs">{b.college}</div>
+                    <div className="text-slate-600 text-xs">{b.branch} · {b.year}</div>
+                  </td>
+                  {/* Contact */}
+                  <td className="px-3 py-3">
+                    <div className="text-slate-300 text-xs">{b.email}</div>
+                    <div className="text-slate-500 text-xs">{b.phone}</div>
+                  </td>
+                  {/* HR */}
+                  <td className="px-3 py-3 whitespace-nowrap">
+                    <div className="text-slate-300 text-xs">{b.hr?.name || '—'}</div>
+                    <div className="text-slate-500 text-xs">{b.preferred_domain}</div>
+                  </td>
+                  {/* Schedule */}
+                  <td className="px-3 py-3 whitespace-nowrap">
+                    <div className="text-slate-300 text-xs">{b.preferred_date}</div>
+                    <div className="text-slate-500 text-xs">{b.preferred_time}</div>
+                  </td>
+                  {/* Booking Status */}
+                  <td className="px-3 py-3 whitespace-nowrap">
                     <select value={b.status} onChange={e => handleStatus(b.id, e.target.value as BookingStatus)} disabled={updatingId === b.id}
-                      className={`px-2.5 py-1 text-xs font-semibold rounded-full border cursor-pointer focus:outline-none disabled:opacity-50 ${statusColors[b.status]} bg-transparent`}>
+                      className={`px-2 py-1 text-xs font-semibold rounded-full border cursor-pointer focus:outline-none disabled:opacity-50 ${statusColors[b.status]} bg-transparent`}>
                       {STATUSES.map(s => <option key={s} value={s} className="bg-slate-900 text-white">{s}</option>)}
                     </select>
                   </td>
-                  <td className="px-4 py-4 whitespace-nowrap"><div className="text-slate-400 text-xs">{new Date(b.created_at).toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' })}</div></td>
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <button onClick={() => handleDelete(b.id, b.student_name)} disabled={deletingId === b.id} className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-medium rounded-lg border border-red-500/20 transition-colors disabled:opacity-50">
-                      {deletingId === b.id ? '...' : 'Delete'}
+                  {/* Payment Status */}
+                  <td className="px-3 py-3 whitespace-nowrap">
+                    <select
+                      value={b.payment_status ?? 'Unpaid'}
+                      onChange={e => handlePaymentStatus(b.id, e.target.value)}
+                      disabled={updatingPayId === b.id}
+                      className={`px-2 py-1 text-xs font-semibold rounded-full border cursor-pointer focus:outline-none disabled:opacity-50 ${paymentColors[b.payment_status ?? 'Unpaid']} bg-transparent`}
+                    >
+                      {PAYMENT_STATUSES.map(s => <option key={s} value={s} className="bg-slate-900 text-white">{s}</option>)}
+                    </select>
+                  </td>
+                  {/* TXN ID */}
+                  <td className="px-3 py-3 whitespace-nowrap">
+                    {b.payment_txn_id ? (
+                      <span className="text-emerald-400 font-mono text-xs">{b.payment_txn_id}</span>
+                    ) : (
+                      <span className="text-slate-600 text-xs">—</span>
+                    )}
+                  </td>
+                  {/* Screenshot */}
+                  <td className="px-3 py-3 whitespace-nowrap">
+                    {b.payment_screenshot_url || b.payment_txn_id ? (
+                      <button
+                        onClick={() => setScreenshotModal({ url: b.payment_screenshot_url ?? '', txnId: b.payment_txn_id ?? '' })}
+                        className="px-2.5 py-1.5 bg-violet-500/15 hover:bg-violet-500/25 text-violet-300 text-xs font-semibold rounded-lg border border-violet-500/25 transition-colors flex items-center gap-1"
+                      >
+                        👁 View
+                      </button>
+                    ) : (
+                      <span className="text-slate-600 text-xs">—</span>
+                    )}
+                  </td>
+                  {/* Date */}
+                  <td className="px-3 py-3 whitespace-nowrap">
+                    <div className="text-slate-400 text-xs">{new Date(b.created_at).toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                  </td>
+                  {/* Delete */}
+                  <td className="px-3 py-3 whitespace-nowrap">
+                    <button onClick={() => handleDelete(b.id, b.student_name)} disabled={deletingId === b.id}
+                      className="px-2.5 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-medium rounded-lg border border-red-500/20 transition-colors disabled:opacity-50">
+                      {deletingId === b.id ? '...' : '🗑'}
                     </button>
                   </td>
                 </tr>
@@ -340,7 +454,7 @@ function BookingsTab() {
         </div>
       )}
       <div className="mt-6 p-4 bg-amber-500/5 border border-amber-500/20 rounded-xl">
-        <p className="text-amber-200/70 text-xs leading-relaxed"><span className="text-amber-300 font-semibold">Note:</span> No automated emails are sent. Manually contact both the student and HR mentor to coordinate the session.</p>
+        <p className="text-amber-200/70 text-xs leading-relaxed"><span className="text-amber-300 font-semibold">Note:</span> Verify payments by checking TXN ID and screenshot, then update Payment Status to <strong className="text-emerald-400">Verified</strong>. No automated emails — contact student and HR manually.</p>
       </div>
     </div>
   );

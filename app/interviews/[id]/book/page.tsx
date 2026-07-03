@@ -15,6 +15,61 @@ import {
 
 const years = ['1st Year', '2nd Year', '3rd Year', '4th Year', 'Final Year', 'Fresh Graduate', 'Alumni'];
 
+const degrees = [
+  'BS (Bachelor of Science)',
+  'BE (Bachelor of Engineering)',
+  'BBA (Bachelor of Business Administration)',
+  'BCS (Bachelor of Computer Science)',
+  'BCom (Bachelor of Commerce)',
+  'BA (Bachelor of Arts)',
+  'MBBS',
+  'MS (Master of Science)',
+  'MBA (Master of Business Administration)',
+  'MCS (Master of Computer Science)',
+  'MEng (Master of Engineering)',
+  'MA (Master of Arts)',
+  'PhD',
+  'Associate Degree',
+  'Diploma',
+  'Other',
+];
+
+const specializations = [
+  // Computer Science & IT
+  'Computer Science',
+  'Software Engineering',
+  'Information Technology',
+  'Artificial Intelligence',
+  'Data Science',
+  'Cybersecurity',
+  'Network Engineering',
+  'Web Development',
+  // Business
+  'Business Administration',
+  'Marketing',
+  'Finance',
+  'Accounting',
+  'Human Resource Management',
+  'Supply Chain Management',
+  'Economics',
+  'Entrepreneurship',
+  // Engineering
+  'Electrical Engineering',
+  'Mechanical Engineering',
+  'Civil Engineering',
+  'Industrial Engineering',
+  'Telecommunications',
+  // Other
+  'Mass Communication',
+  'Psychology',
+  'English Literature',
+  'Law',
+  'Education',
+  'Architecture',
+  'Medicine / MBBS',
+  'Other',
+];
+
 export default function BookingPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -100,8 +155,8 @@ export default function BookingPage() {
     }
     setSubmitting(true);
     try {
-      await createBooking({ ...form, hr_id: id });
-      router.push('/booking-success');
+      const booking = await createBooking({ ...form, hr_id: id });
+      router.push(`/payment?booking_id=${booking.id}`);
     } catch {
       alert('Booking failed. Please check your connection and try again.');
     } finally {
@@ -158,8 +213,8 @@ export default function BookingPage() {
               <p className="text-violet-400 text-xs">{hr.position} · {hr.company}</p>
             </div>
             <div className="flex-shrink-0">
-              <span className="px-3 py-1 bg-emerald-500/15 text-emerald-400 text-xs font-bold rounded-full border border-emerald-500/30">
-                FREE
+              <span className="px-3 py-1 bg-violet-500/15 text-violet-300 text-xs font-bold rounded-full border border-violet-500/30">
+                PKR 1,000
               </span>
             </div>
           </div>
@@ -266,26 +321,28 @@ export default function BookingPage() {
                 <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
                   Degree *
                 </label>
-                <input
-                  type="text"
-                  placeholder="e.g., BS, BBA, MBA"
+                <select
                   value={form.degree}
                   onChange={(e) => set('degree', e.target.value)}
-                  className={inputClass('degree')}
-                />
+                  className={selectClass('degree')}
+                >
+                  <option value="">Select degree...</option>
+                  {degrees.map((d) => <option key={d} value={d}>{d}</option>)}
+                </select>
                 {errors.degree && <p className="text-red-400 text-xs mt-1">{errors.degree}</p>}
               </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                  Branch / Major *
+                  Specialization / Major *
                 </label>
-                <input
-                  type="text"
-                  placeholder="e.g., Computer Science"
+                <select
                   value={form.branch}
                   onChange={(e) => set('branch', e.target.value)}
-                  className={inputClass('branch')}
-                />
+                  className={selectClass('branch')}
+                >
+                  <option value="">Select specialization...</option>
+                  {specializations.map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
                 {errors.branch && <p className="text-red-400 text-xs mt-1">{errors.branch}</p>}
               </div>
               <div>
@@ -315,17 +372,17 @@ export default function BookingPage() {
             </h3>
             <div className="grid sm:grid-cols-2 gap-4">
 
-              {/* Domain */}
+              {/* Domain / Mentorship Area */}
               <div className="sm:col-span-2">
                 <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                  Preferred Domain *
+                  Mentorship Area / Interview Domain *
                 </label>
                 <select
                   value={form.preferred_domain}
                   onChange={(e) => set('preferred_domain', e.target.value)}
                   className={selectClass('preferred_domain')}
                 >
-                  <option value="">Select domain...</option>
+                  <option value="">Select the area you need mentorship in...</option>
                   {hr?.interview_domains.map((d) => (
                     <option key={d} value={d}>{d}</option>
                   ))}

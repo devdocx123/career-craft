@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function Footer() {
   return (
@@ -7,8 +8,8 @@ export default function Footer() {
         {/* Brand */}
         <div className="col-span-1 md:col-span-2">
           <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm">
-              CC
+            <div className="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0">
+              <Image src="/logo.jpeg" alt="CareerCraft Logo" width={32} height={32} className="w-full h-full object-contain" />
             </div>
             <span className="text-white font-bold text-lg">CareerCraft</span>
           </div>
@@ -25,6 +26,7 @@ export default function Footer() {
             <li><Link href="/" className="hover:text-white transition-colors">Home</Link></li>
             <li><Link href="/dashboard" className="hover:text-white transition-colors">Dashboard</Link></li>
             <li><Link href="/interviews" className="hover:text-white transition-colors">Mock Interviews</Link></li>
+            <li><Link href="/contact" className="hover:text-white transition-colors">Contact</Link></li>
             <li><Link href="/admin" className="hover:text-white transition-colors">Admin</Link></li>
           </ul>
         </div>

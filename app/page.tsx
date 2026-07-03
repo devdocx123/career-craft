@@ -70,8 +70,8 @@ const testimonials = [
 
 const faqs = [
   {
-    q: 'Is CareerCraft free to use?',
-    a: 'Currently the mock interview booking feature is completely free. Premium features will be introduced in future versions.',
+    q: 'How much does CareerCraft cost?',
+    a: 'The Standard Plan for mock interview booking is PKR 1,000. Payment is made via EasyPaisa to account 03105156719 (SAEED ASIF). Premium and Ultra plans are coming soon.',
   },
   {
     q: 'How does the interview booking work?',
@@ -108,17 +108,18 @@ export default function HomePage() {
             Career Help for Youth in Pakistan
           </div>
 
-          <h1 className="text-5xl sm:text-7xl font-black tracking-tight mb-6 bg-gradient-to-b from-white to-slate-400 bg-clip-text text-transparent leading-[1.05]">
+          <h1 className="text-5xl sm:text-7xl font-black tracking-tight mb-6 text-white leading-[1.05]">
             Land Your Dream Job.
             <br />
-            <span className="bg-gradient-to-r from-violet-400 to-indigo-400 bg-clip-text text-transparent">
+            <span className="text-violet-400">
               Start With a Mock Interview.
             </span>
           </h1>
 
           <p className="text-lg sm:text-xl text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed">
             CareerCraft connects Pakistani students and fresh graduates with real HR professionals
-            for one-on-one mock interview sessions — completely free.
+            for one-on-one mock interview sessions — starting at{' '}
+            <span className="whitespace-nowrap">PKR 1,000.</span>
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -140,7 +141,7 @@ export default function HomePage() {
           <div className="mt-16 flex flex-wrap justify-center gap-8 sm:gap-16">
             {[
               { value: '6+', label: 'HR Mentors' },
-              { value: '100%', label: 'Free to Book' },
+              { value: 'PKR 1K', label: 'Standard Plan' },
               { value: '5+', label: 'Industry Domains' },
             ].map((stat) => (
               <div key={stat.label} className="text-center">
@@ -180,7 +181,7 @@ export default function HomePage() {
               { icon: '🎓', title: 'For Students', desc: 'University students preparing for placements and internships' },
               { icon: '👔', title: 'For Graduates', desc: 'Fresh graduates entering the job market for the first time' },
               { icon: '💼', title: 'Real Mentors', desc: 'Verified HR professionals from top companies in Pakistan' },
-              { icon: '🚀', title: 'Zero Cost', desc: 'Completely free during the MVP phase — no credit card needed' },
+              { icon: '🚀', title: 'Affordable Plans', desc: 'Starting at PKR 1,000 for a Standard mock interview session via EasyPaisa.' },
             ].map((item) => (
               <div key={item.title} className="bg-white/5 border border-white/10 rounded-2xl p-5 hover:bg-white/8 transition-colors">
                 <div className="text-2xl mb-3">{item.icon}</div>
@@ -340,13 +341,13 @@ export default function HomePage() {
             <div className="relative z-10">
               <h2 className="text-4xl font-black text-white mb-4">Ready to Ace Your Interview?</h2>
               <p className="text-slate-400 mb-8 max-w-md mx-auto">
-                Browse our HR mentors and book your free one-on-one mock interview session today.
+                Browse our HR mentors, book your mock interview session, and pay securely via EasyPaisa.
               </p>
               <Link
                 href="/interviews"
                 className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold rounded-xl transition-all duration-200 shadow-2xl shadow-violet-600/30 hover:-translate-y-0.5 text-base"
               >
-                Book Your Free Session →
+                Book Your Session →
               </Link>
             </div>
           </div>
